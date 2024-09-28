@@ -11,13 +11,15 @@ const defaultTexture = new TextureLoader().load(fishImage)
 const fontLoader = new FontLoader();
 const parsedFont = fontLoader.parse(font);
 
-const SPEED = 0.006; //how fast the boids travel
+const SPEED = 0.009; //how fast the boids travel
 const AVOIDANCE_RADIUS = 0.0025; //the radius of the boid's sightline to the walls
 const SEP_WEIGHT = 1; //how much the boid separates itself from it's neighboids
 const AVO_WEIGHT = 0.2; //how much the boid dodges the walls
-const RAN_WEIGHT = 0.001; //how much the boid goes in a random direction
-const INERTIA = 0.01; //the proportion with which the rules should affect the current speed
+const RAN_WEIGHT = 0.003; //how much the boid goes in a random direction
+const INERTIA = 0.02; //the proportion with which the rules should affect the current speed
 
+
+const flock = ['A', 'B'] as const;
 
 export class Boid {
   position: Vector3;
@@ -27,6 +29,7 @@ export class Boid {
   group: Group
   mesh: Mesh
   material: ShaderMaterial
+  flock: typeof flock[number] = flock[Math.floor(Math.random() * flock.length)];
 
   constructor(game: Game, position: Vector3, velocity: Vector3, name: string = 'fish', texture: Texture = defaultTexture) {
     this.game = game;
@@ -45,7 +48,7 @@ export class Boid {
       // wireframe: true,
       side: DoubleSide
     });
-    const geometry = new PlaneGeometry(0.45, 0.45, 20, 20);
+    const geometry = new PlaneGeometry(0.6, 0.6, 20, 20);
     this.mesh = new Mesh(geometry, this.material)
     this.mesh.rotation.set(0, -Math.PI / 2, 0); 
 
@@ -65,7 +68,7 @@ export class Boid {
     // const axesHelper = new AxesHelper( 5 );
     // this.group.add( axesHelper );
 
-    this.group.add(textMesh);
+    // this.group.add(textMesh);
 
 
     this.game.scene.add(this.group);
@@ -81,7 +84,7 @@ export class Boid {
 
 		/* add rules to current velocity and update position */
 		this.velocity.add(deltaV);
-		this.velocity.clampLength(SPEED, SPEED);
+		this.velocity.clampLength(SPEED*0.5, SPEED);
     this.velocity.z = 0;
 
 		const scaledVel = this.velocity.clone();
@@ -122,7 +125,7 @@ export class Boid {
   /* move away from walls when boid is close to hitting them */
   avoidance() {
     const result = new Vector3(0, 0, 0);
-    if (Math.abs(this.position.x) + AVOIDANCE_RADIUS >= 2.85) {
+    if (Math.abs(this.position.x) + AVOIDANCE_RADIUS >= 3.85) {
       result.x = -Math.sign(this.position.x);
     }
     // below floor

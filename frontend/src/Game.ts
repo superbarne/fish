@@ -20,7 +20,7 @@ export class Game {
   backdropColor1 = new Color(0x00078a)
   backdropColor2 = new Color(0x0a8185)
 
-  floorColor = new Color(0x0a0a52)
+  floorColor = new Color(0x000030)
   
   testMesh: Mesh;
   constructor(width: number, height: number) {
@@ -46,21 +46,22 @@ export class Game {
     this.testMesh = new Mesh( geometry, material );
     this.testMesh.position.x = 0
     this.testMesh.position.y = 0
-    this.scene.add(this.testMesh);
+    // this.scene.add(this.testMesh);
 
     // floor
     const floorGeometry = new PlaneGeometry( 100, 10 );
-    const floorMaterial = new MeshBasicMaterial({ color: this.floorColor, side: DoubleSide });
+    const floorMaterial = new MeshBasicMaterial({ side: DoubleSide });
+    floorMaterial.color = this.floorColor;
     const floorPlane = new Mesh( floorGeometry, floorMaterial );
     floorPlane.rotation.x = Math.PI / 2;
     this.scene.add(floorPlane);
 
     // backdrop
-    const backdropGeometry = new PlaneGeometry( 20, 10 );
+    const backdropGeometry = new PlaneGeometry( 20, 6 );
     // const backdropMaterial = new MeshBasicMaterial( {color: 0x030579, side: DoubleSide } );
     const backdropPlane = new Mesh( backdropGeometry, gradientShaderMaterial( this.backdropColor1, this.backdropColor2 ));
-    backdropPlane.position.z = -3;
-    backdropPlane.position.y = 5;
+    backdropPlane.position.z = -1.5;
+    backdropPlane.position.y = 3;
     this.scene.add(backdropPlane);
 
     // light
@@ -75,8 +76,10 @@ export class Game {
 
     this.controls = new ImmersiveControls(this.camera, this.renderer, this.scene);
 
-    const axesHelper = new AxesHelper( 5 );
-    this.scene.add( axesHelper );
+    this.controls.camera.position.set(0, 0.5, 0);
+
+    // const axesHelper = new AxesHelper( 5 );
+    // this.scene.add( axesHelper );
     
     this.gui.addColor(this, 'backdropColor1')
     this.gui.addColor(this, 'backdropColor2')
@@ -95,15 +98,27 @@ export class Game {
       console.log('ping', event.data)
     });
 
-    evtSource.addEventListener("fish", (event) => {
+    evtSource.addEventListener("fish", async (event) => {
       console.log('fish', event.data)
       const fish = JSON.parse(event.data);
       console.log(fish)
 
-      const position = randomVector(5, 1.5, 0.5)
-      position.y = position.y +2
-      const boid = new Boid(this, position, randomVector(1, 0, 1), fish.name, fishTextureMap.get(fish.texture));
-      this.boids.push(boid);
+      // load texture
+      if(!fishTextureMap.has(fish.id)) {
+        const imageReponse = await fetch(`http://127.0.0.1:8080/fishs/38d7976d-3c27-4e74-8bfe-a9ec44318d3f/${fish.filename}`)
+        const imageBlob = await imageReponse.blob()
+        const texture = new TextureLoader().load(URL.createObjectURL(imageBlob));
+        fishTextureMap.set(fish.id, texture)
+      }
+
+      // loop for 50 times
+      for (let i = 0; i < 50; i++) {
+        const position = randomVector(5, 1.3, 1.5)
+        position.y = position.y +2
+        const boid = new Boid(this, position, randomVector(1, 0, 1), fish.name, fishTextureMap.get(fish.id));
+        this.boids.push(boid);
+      }
+      
     });
   }
 
