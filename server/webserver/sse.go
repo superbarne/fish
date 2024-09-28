@@ -40,7 +40,6 @@ func (ws *WebServer) ServeSSE(c *fiber.Ctx) error {
 	c.Set("Connection", "keep-alive")
 
 	ctx := c.Context()
-	fmt.Println(ctx)
 
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
 		fmt.Fprintf(w, "event: ping\ndata: {}\n\n")
@@ -49,12 +48,19 @@ func (ws *WebServer) ServeSSE(c *fiber.Ctx) error {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 
+		// send old fishes
+		for _, fish := range aquarium.Fishes() {
+			raw, _ := json.Marshal(fish)
+			fmt.Fprintf(w, "event: fish\ndata: %s\n\n", raw)
+			w.Flush()
+		}
+
 		for {
 			select {
 			case <-ticker.C:
 				fmt.Fprintf(w, "event: ping\ndata: {}\n\n")
 				w.Flush()
-			case fish := <-aquarium.Fishes(ctx):
+			case fish := <-aquarium.RealtimeFishes(ctx):
 				raw, _ := json.Marshal(fish)
 				fmt.Fprintf(w, "event: fish\ndata: %s\n\n", raw)
 			}

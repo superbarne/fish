@@ -25,7 +25,7 @@ func NewAquarium(id uuid.UUID) *Aquarium {
 	}
 }
 
-func (a *Aquarium) Fishes(ctx context.Context) <-chan *models.Fish {
+func (a *Aquarium) RealtimeFishes(ctx context.Context) <-chan *models.Fish {
 	ch := make(chan *models.Fish)
 
 	a.subscribersLock.Lock()
@@ -41,6 +41,10 @@ func (a *Aquarium) Fishes(ctx context.Context) <-chan *models.Fish {
 	}()
 
 	return ch
+}
+
+func (a *Aquarium) Fishes() []*models.Fish {
+	return a.fishes
 }
 
 func (a *Aquarium) AddFish(fish *models.Fish) {

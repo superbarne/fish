@@ -47,10 +47,6 @@ func NewWebServer(log *slog.Logger) *WebServer {
 	ws.app.Get("/aquarium/:id", ws.UploadFish)
 	ws.app.Post("/aquarium/:id", ws.UploadFish)
 
-	// serve aquarium
-	// serve upload
-	// serve serve fishis
-
 	return ws
 }
 
