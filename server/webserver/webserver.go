@@ -26,6 +26,7 @@ type WebServer struct {
 func NewWebServer(log *slog.Logger) *WebServer {
 	// Initialize standard Go html template engine
 	engine := html.New("./views", ".html")
+	engine.Reload(true)
 
 	// create folders
 	os.MkdirAll("./uploads", os.ModePerm)
@@ -49,6 +50,8 @@ func NewWebServer(log *slog.Logger) *WebServer {
 		},
 	))
 
+	ws.app.Get("/", ws.ServeLandingPage)
+	ws.app.Static("/assets", "./assets/app")
 	ws.app.Static("/aquarium", "./assets/aquarium")
 	ws.app.Static("/fishs", "./upload")
 	ws.app.Get("/aquarium/:id/sse", ws.ServeSSE)

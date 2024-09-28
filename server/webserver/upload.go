@@ -87,7 +87,7 @@ func (ws *WebServer) UploadFish(c *fiber.Ctx) error {
 		return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
 	}
 
-	return c.Render("index", fiber.Map{
+	return c.Render("upload", fiber.Map{
 		"ID":    aquariumID.String(),
 		"Title": "Go Fiber Template Example",
 	})
