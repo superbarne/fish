@@ -12,6 +12,6 @@ Photo Upload
 
 Send Events at new Images.
 
-## `/fishs`
+## `/fishs/<aquariumID>/filename.png`
 
 Serve the static file upload folder.
