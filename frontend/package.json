@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@depasquale/three-immersive-controls": "^0.0.15",
+    "lil-gui": "^0.19.2",
     "three": "^0.168.0"
   }
 }

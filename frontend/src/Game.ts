@@ -1,8 +1,12 @@
-import { PerspectiveCamera, Scene, WebGLRenderer, AmbientLight, BoxGeometry, MeshNormalMaterial, Mesh, PlaneGeometry, MeshBasicMaterial, DoubleSide } from "three";
+import { PerspectiveCamera, Scene, WebGLRenderer, AmbientLight, BoxGeometry, MeshNormalMaterial, Mesh, PlaneGeometry, MeshBasicMaterial, DoubleSide, Color, AxesHelper, TextureLoader, Texture } from "three";
 import { Boid, randomVector } from "./Boid";
 import ImmersiveControls from '@depasquale/three-immersive-controls';
+import { gradientShaderMaterial } from "./Gradient";
+import GUI from 'lil-gui'; 
 
-const NUM_BOIDS = 100;
+const NUM_BOIDS = 0;
+
+const fishTextureMap = new Map<string, Texture>()
 
 export class Game {
   boids: Boid[] = [];
@@ -12,6 +16,11 @@ export class Game {
   renderer: WebGLRenderer;
   camera: PerspectiveCamera;
   controls: ImmersiveControls
+  gui: GUI;
+  backdropColor1 = new Color(0x00078a)
+  backdropColor2 = new Color(0x0a8185)
+
+  floorColor = new Color(0x0a0a52)
   
   testMesh: Mesh;
   constructor(width: number, height: number) {
@@ -21,6 +30,7 @@ export class Game {
     // init
     this.camera = new PerspectiveCamera( 70, width / height, 0.09, 20 );
     this.scene = new Scene();
+    this.gui = new GUI();
 
     // generate boids
     for (let i = 0; i < NUM_BOIDS; i++) {
@@ -40,16 +50,17 @@ export class Game {
 
     // floor
     const floorGeometry = new PlaneGeometry( 100, 10 );
-    const floorMaterial = new MeshBasicMaterial( {color: 0x1f00d2, side: DoubleSide } );
+    const floorMaterial = new MeshBasicMaterial({ color: this.floorColor, side: DoubleSide });
     const floorPlane = new Mesh( floorGeometry, floorMaterial );
     floorPlane.rotation.x = Math.PI / 2;
     this.scene.add(floorPlane);
 
     // backdrop
-    const backdropGeometry = new PlaneGeometry( 20, 20 );
-    const backdropMaterial = new MeshBasicMaterial( {color: 0x030579, side: DoubleSide } );
-    const backdropPlane = new Mesh( backdropGeometry, backdropMaterial );
+    const backdropGeometry = new PlaneGeometry( 20, 10 );
+    // const backdropMaterial = new MeshBasicMaterial( {color: 0x030579, side: DoubleSide } );
+    const backdropPlane = new Mesh( backdropGeometry, gradientShaderMaterial( this.backdropColor1, this.backdropColor2 ));
     backdropPlane.position.z = -3;
+    backdropPlane.position.y = 5;
     this.scene.add(backdropPlane);
 
     // light
@@ -57,15 +68,43 @@ export class Game {
     this.scene.add( light );
 
     // renderer
-    this.renderer = new WebGLRenderer( { antialias: true, alpha:true } );
+    this.renderer = new WebGLRenderer({ antialias: true, alpha:true });
     this.renderer.xr.enabled = true;
     this.renderer.setSize(width, height);
     this.renderer.setAnimationLoop((time) => this.animate(time));
 
     this.controls = new ImmersiveControls(this.camera, this.renderer, this.scene);
 
+    const axesHelper = new AxesHelper( 5 );
+    this.scene.add( axesHelper );
+    
+    this.gui.addColor(this, 'backdropColor1')
+    this.gui.addColor(this, 'backdropColor2')
+    this.gui.addColor(this, 'floorColor')
+
     document.body.appendChild(this.renderer.domElement);
     document.body.appendChild( this.renderer.domElement );
+
+    // server stuff
+    this.initServerConnection();
+  }
+
+  async initServerConnection() {
+    const evtSource = new EventSource("http://127.0.0.1:8080/aquarium/38d7976d-3c27-4e74-8bfe-a9ec44318d3f/sse");
+    evtSource.addEventListener("ping", (event) => {
+      console.log('ping', event.data)
+    });
+
+    evtSource.addEventListener("fish", (event) => {
+      console.log('fish', event.data)
+      const fish = JSON.parse(event.data);
+      console.log(fish)
+
+      const position = randomVector(5, 1.5, 0.5)
+      position.y = position.y +2
+      const boid = new Boid(this, position, randomVector(1, 0, 1), fish.name, fishTextureMap.get(fish.texture));
+      this.boids.push(boid);
+    });
   }
 
   lastTime = 0

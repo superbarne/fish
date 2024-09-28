@@ -1,44 +1,77 @@
-import { Vector3, TextureLoader, MeshBasicMaterial, PlaneGeometry, Mesh } from 'three';
-import fishImage from './fish/image.png'
+import { Vector3, TextureLoader, MeshBasicMaterial, PlaneGeometry, Mesh, DoubleSide, Group, Texture, AxesHelper, ShaderMaterial } from 'three';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { Game } from './Game';
+import font from './helvetiker_regular.typeface.json'
+import fishImage from './fish/image.png'
+import fragmentShader from './glsl/fragment.glsl?raw'
+import vertexShader from './glsl/vertex.glsl?raw'
+
+const defaultTexture = new TextureLoader().load(fishImage)
+const fontLoader = new FontLoader();
+const parsedFont = fontLoader.parse(font);
 
 const SPEED = 0.006; //how fast the boids travel
 const AVOIDANCE_RADIUS = 0.0025; //the radius of the boid's sightline to the walls
 const SEP_WEIGHT = 1; //how much the boid separates itself from it's neighboids
 const AVO_WEIGHT = 0.2; //how much the boid dodges the walls
-const RAN_WEIGHT = 0.01; //how much the boid goes in a random direction
+const RAN_WEIGHT = 0.001; //how much the boid goes in a random direction
 const INERTIA = 0.01; //the proportion with which the rules should affect the current speed
 
-const texture = new TextureLoader().load(fishImage)
 
 export class Boid {
   position: Vector3;
   velocity: Vector3;
-  mesh: Mesh;
   neighborhood: Boid[] = [];
   game: Game
+  group: Group
+  mesh: Mesh
+  material: ShaderMaterial
 
-  constructor(game: Game, position: Vector3, velocity: Vector3) {
+  constructor(game: Game, position: Vector3, velocity: Vector3, name: string = 'fish', texture: Texture = defaultTexture) {
     this.game = game;
     this.position = position;
     this.velocity = velocity;
 
-    const material = new MeshBasicMaterial({ map: texture, transparent: true })
-    const geometry = new PlaneGeometry(0.45, 0.45)
-    this.mesh = new Mesh(geometry, material)
+    // const material = new MeshBasicMaterial({ map: texture, transparent: true, side: DoubleSide, wireframe: true });
+    this.material = new ShaderMaterial({
+      vertexShader,
+      transparent: true,
+      fragmentShader,
+      uniforms: {
+        uTime: { value: 0.0 },
+        uTexture: { value: texture }
+      },
+      // wireframe: true,
+      side: DoubleSide
+    });
+    const geometry = new PlaneGeometry(0.45, 0.45, 20, 20);
+    this.mesh = new Mesh(geometry, this.material)
+    this.mesh.rotation.set(0, -Math.PI / 2, 0); 
 
-    this.mesh.rotation.set(0, 0, 0);
+    this.group = new Group();
+    this.group.add(this.mesh);
 
-    this.game.scene.add(this.mesh);
+    // text mesh with position and fish name
+    const textGeometry = new TextGeometry(name, {
+      font: parsedFont,
+      size: 0.1,
+      height: 0.01,
+    });
+    const textMaterial = new MeshBasicMaterial({ color: 0xff0000 });
+    const textMesh = new Mesh(textGeometry, textMaterial);
+    textMesh.rotation.set(0, -Math.PI / 2, 0); 
+    textMesh.position.set(0, 0.25, 0);
+    // const axesHelper = new AxesHelper( 5 );
+    // this.group.add( axesHelper );
+
+    this.group.add(textMesh);
+
+
+    this.game.scene.add(this.group);
   }
 
   move(deltaTime: number) {
-		/* create neighborhood */
-		this.neighborhood = [];
-		// for (const b of boids) {
-		// 	if (b == this) continue;
-		// 	if (this.pos.distanceToSquared(b.pos) <= NEIGHBORHOOD_RADIUS) this.neighborhood.push(b);
-		// }
 
 		/* apply all rules*/
 		const deltaV = this.separation();
@@ -49,26 +82,27 @@ export class Boid {
 		/* add rules to current velocity and update position */
 		this.velocity.add(deltaV);
 		this.velocity.clampLength(SPEED, SPEED);
+    this.velocity.z = 0;
+
 		const scaledVel = this.velocity.clone();
 		scaledVel.multiplyScalar((deltaTime * 60) / 1000);
 		this.position.add(scaledVel);
 		// this.position.clamp(this.game.bounds.min, this.game.bounds.max);
-		this.updateShape(); //update THREE.js shape
+		this.updateShape();
 	}
 
   updateShape () {
-    this.mesh.position.set(this.position.x, this.position.y, this.position.z);
-    /* look in the direction of travel */
-    // const lookDir = this.velocity.clone();
-    // lookDir.add(this.position);
-    // this.mesh.lookAt(lookDir);
-
     // look dir should only be in the xz plane
-    const lookDir = this.velocity.clone();
-    lookDir.add(this.position);
-    lookDir.z = 0;
-    lookDir.x = 0;
-    this.mesh.lookAt(lookDir);
+    const verlocity = this.velocity.clone();
+    verlocity.y = 0;
+    verlocity.z = 0;
+    verlocity.x = -verlocity.x;
+    const lookDir = this.group.position.clone().add(this.velocity.clone())
+    this.group.lookAt(lookDir);
+    this.group.position.set(this.position.x, this.position.y, this.position.z);
+
+    // wave
+    this.material.uniforms.uTime.value = performance.now() / 1000;
   }
 
   /* avoid all boids in neighborhood */
