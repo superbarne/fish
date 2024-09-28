@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/superbarne/fish/aquarium"
+	"github.com/superbarne/fish/imageprocess"
 	"github.com/superbarne/fish/models"
 )
 
@@ -47,23 +48,33 @@ func (ws *WebServer) UploadFish(c *fiber.Ctx) error {
 		fishID := uuid.New()
 		filename := fmt.Sprintf("%s%s", fishID.String(), filepath.Ext(file.Filename))
 
-		if err := os.MkdirAll("./uploads/"+aquariumID.String(), os.ModePerm); err != nil {
+		tmpFile := filepath.Join(os.TempDir(), aquariumID.String(), filename)
+		if err := os.MkdirAll(filepath.Join(os.TempDir(), aquariumID.String()), os.ModePerm); err != nil {
 			ws.log.Error("Failed to create data directory", slog.String("error", err.Error()))
 			return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
 		}
 
 		// Save the file
-		err = c.SaveFile(file, filepath.Join("./uploads/", aquariumID.String(), filename))
+		err = c.SaveFile(file, tmpFile)
 		if err != nil {
 			ws.log.Error("Failed to save image", slog.String("error", err.Error()))
 			return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
+		}
+
+		// Process Image
+		targetFile := filepath.Join("./uploads/", aquariumID.String(), fishID.String()+".png")
+		imageprocess.ProcessImage(tmpFile, targetFile)
+
+		// Remove temp file
+		if err := os.Remove(tmpFile); err != nil {
+			ws.log.Error("Failed to remove temp file", slog.String("error", err.Error()))
 		}
 
 		// Write Json with metadata about the uploaded file
 		fish := &models.Fish{
 			ID:         fishID,
 			Name:       name,
-			Filename:   filename,
+			Filename:   fishID.String() + ".png",
 			UploadTime: time.Now().String(),
 			Approved:   false,
 		}
@@ -76,7 +87,7 @@ func (ws *WebServer) UploadFish(c *fiber.Ctx) error {
 		return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
 	}
 
-	return c.Render("index", fiber.Map{
+	return c.Render("upload", fiber.Map{
 		"ID":    aquariumID.String(),
 		"Title": "Go Fiber Template Example",
 	})
