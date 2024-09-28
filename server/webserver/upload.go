@@ -42,6 +42,12 @@ func (ws *WebServer) UploadFish(c *fiber.Ctx) error {
 			return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
 		}
 
+		// is file a image
+		if file.Header.Get("Content-Type") != "image/png" && file.Header.Get("Content-Type") != "image/jpeg" && file.Header.Get("Content-Type") != "image/jpg" {
+			ws.log.Error("File is not a image", slog.String("error", err.Error()))
+			return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
+		}
+
 		name := c.FormValue("name", "Boid")
 
 		// Generate a unique filename
