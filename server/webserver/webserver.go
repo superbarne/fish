@@ -49,6 +49,7 @@ func NewWebServer(log *slog.Logger) *WebServer {
 	))
 
 	ws.app.Static("/aquarium", "./assets/aquarium")
+	ws.app.Static("/fishs", "./upload")
 	ws.app.Get("/aquarium/:id/sse", ws.ServeSSE)
 	ws.app.Get("/aquarium/:id", ws.UploadFish)
 	ws.app.Post("/aquarium/:id", ws.UploadFish)
