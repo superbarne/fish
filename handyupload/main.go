@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -71,11 +73,36 @@ func handleImageUpload(c *fiber.Ctx) error {
 	}
 
 	// Save Metadata to json file
-
+	saveToJSON(fish, uniqueID.String())
 
     // Return success response
     return c.JSON(fiber.Map{
         "filename": filename,
         "size": file.Size,
     })
+}
+
+func saveToJSON(fish Fish, uuid string) {
+	// Convert the struct to JSON format
+	jsonData, err := json.MarshalIndent(fish, "", "  ")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Write the JSON data to a file
+	file, err := os.Create(filepath.Join("./data", uuid + ".json"))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+
+	// Write the JSON data to the file
+	_, err = file.Write(jsonData)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 }
