@@ -1,6 +1,7 @@
 package webserver
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"sync"
@@ -61,6 +62,6 @@ func (ws *WebServer) Listen() error {
 	return ws.app.Listen(":8080")
 }
 
-func (ws *WebServer) Shutdown() {
-	ws.app.Shutdown()
+func (ws *WebServer) Shutdown(ctx context.Context) error {
+	return ws.app.ShutdownWithContext(ctx)
 }

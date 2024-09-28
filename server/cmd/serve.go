@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/superbarne/fish/webserver"
@@ -41,7 +42,10 @@ func serve() {
 
 	<-ctx.Done()
 
+	timeout, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
 	log.Info("Server shutdown...")
 
-	server.Shutdown()
+	server.Shutdown(timeout)
 }
