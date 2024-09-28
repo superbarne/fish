@@ -62,7 +62,10 @@ func NewWebServer(log *slog.Logger) *WebServer {
 }
 
 func (ws *WebServer) Listen() error {
-	return ws.app.Listen(":8080")
+	// read env
+	port := os.Getenv("AQUARIUM_PORT")
+
+	return ws.app.Listen(":" + port)
 }
 
 func (ws *WebServer) Shutdown(ctx context.Context) error {
