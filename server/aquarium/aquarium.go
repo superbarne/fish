@@ -2,6 +2,9 @@ package aquarium
 
 import (
 	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/google/uuid"
@@ -18,11 +21,39 @@ type Aquarium struct {
 }
 
 func NewAquarium(id uuid.UUID) *Aquarium {
-	return &Aquarium{
+	aquarium := &Aquarium{
 		ID: id,
 
 		subscribers: make(map[context.Context]chan *models.Fish),
 	}
+
+	// create folders
+	os.MkdirAll(filepath.Join("./uploads", id.String()), os.ModePerm)
+	os.MkdirAll(filepath.Join("./data", id.String()), os.ModePerm)
+
+	// read existing fishes
+	files, err := os.ReadDir(filepath.Join("./data", id.String()))
+	if err != nil {
+		panic(err)
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+
+		readFile, err := os.ReadFile(filepath.Join("./data", id.String(), file.Name()))
+		if err != nil {
+			panic(err)
+		}
+
+		fish := &models.Fish{}
+		json.Unmarshal(readFile, fish)
+
+		aquarium.fishes = append(aquarium.fishes, fish)
+	}
+
+	return aquarium
 }
 
 func (a *Aquarium) RealtimeFishes(ctx context.Context) <-chan *models.Fish {
