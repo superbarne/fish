@@ -10,6 +10,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/superbarne/fish/aquarium"
 	"github.com/superbarne/fish/models"
 )
 
@@ -19,6 +20,18 @@ func (ws *WebServer) UploadFish(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Redirect("/aquarium")
 	}
+
+	var aquarium *aquarium.Aquarium
+	var ok bool
+	func() {
+		ws.aquariumsLock.RLock()
+		defer ws.aquariumsLock.RUnlock()
+		aquarium, ok = ws.aquariums[aquariumID]
+		if !ok {
+			c.Redirect("/aquarium")
+			return
+		}
+	}()
 
 	if c.Method() == fiber.MethodPost {
 		// Get the file from the request
@@ -31,11 +44,16 @@ func (ws *WebServer) UploadFish(c *fiber.Ctx) error {
 		name := c.FormValue("name", "Boid")
 
 		// Generate a unique filename
-		uniqueID := uuid.New()
-		filename := fmt.Sprintf("%s%s", uniqueID.String(), filepath.Ext(file.Filename))
+		fishID := uuid.New()
+		filename := fmt.Sprintf("%s%s", fishID.String(), filepath.Ext(file.Filename))
+
+		if err := os.MkdirAll("./uploads/"+aquariumID.String(), os.ModePerm); err != nil {
+			ws.log.Error("Failed to create data directory", slog.String("error", err.Error()))
+			return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
+		}
 
 		// Save the file
-		err = c.SaveFile(file, fmt.Sprintf("./uploads/%s", filename))
+		err = c.SaveFile(file, filepath.Join("./uploads/", aquariumID.String(), filename))
 		if err != nil {
 			ws.log.Error("Failed to save image", slog.String("error", err.Error()))
 			return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
@@ -43,13 +61,17 @@ func (ws *WebServer) UploadFish(c *fiber.Ctx) error {
 
 		// Write Json with metadata about the uploaded file
 		fish := &models.Fish{
+			ID:         fishID,
 			Name:       name,
+			Filename:   filename,
 			UploadTime: time.Now().String(),
 			Approved:   false,
 		}
 
 		// Save Metadata to json file
-		ws.saveToJSON(fish, uniqueID.String())
+		ws.saveToJSON(aquarium.ID, fish, fishID.String())
+
+		aquarium.AddFish(fish)
 
 		return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
 	}
@@ -60,7 +82,7 @@ func (ws *WebServer) UploadFish(c *fiber.Ctx) error {
 	})
 }
 
-func (ws *WebServer) saveToJSON(fish *models.Fish, uuid string) {
+func (ws *WebServer) saveToJSON(aquariumID uuid.UUID, fish *models.Fish, uuid string) {
 	// Convert the struct to JSON format
 	jsonData, err := json.MarshalIndent(fish, "", "  ")
 	if err != nil {
@@ -68,13 +90,13 @@ func (ws *WebServer) saveToJSON(fish *models.Fish, uuid string) {
 		return
 	}
 
-	if err := os.MkdirAll("./data", os.ModePerm); err != nil {
+	if err := os.MkdirAll("./data/"+aquariumID.String(), os.ModePerm); err != nil {
 		ws.log.Error("Failed to create data directory", slog.String("error", err.Error()))
 		return
 	}
 
 	// Write the JSON data to a file
-	file, err := os.Create(filepath.Join("./data", uuid+".json"))
+	file, err := os.Create(filepath.Join("./data", aquariumID.String(), uuid+".json"))
 	if err != nil {
 		fmt.Println(err)
 		return
