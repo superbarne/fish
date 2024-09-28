@@ -24,6 +24,7 @@ func NewWebServer(log *slog.Logger) *WebServer {
 
 	ws.app.Static("/aquarium", "./assets/aquarium")
 	ws.app.Get("/aquarium/:id/sse", ws.ServeSSE)
+	ws.app.Post("/aquarium/:id", ws.UploadFish)
 
 	// serve aquarium
 	// serve upload
