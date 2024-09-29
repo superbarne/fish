@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/template/html/v2"
 	"github.com/google/uuid"
@@ -44,6 +45,7 @@ func NewWebServer(log *slog.Logger) *WebServer {
 
 	ws.app.Use(recover.New())
 	ws.app.Use(compress.New())
+	ws.app.Use(limiter.New())
 	ws.app.Use(cors.New(
 		cors.Config{
 			AllowOrigins: "*",
