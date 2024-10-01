@@ -1,7 +1,9 @@
 package webserver
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"net/http"
+)
 
-func (ws *WebServer) ServeLandingPage(ctx *fiber.Ctx) error {
-	return ctx.Render("landing", fiber.Map{})
+func (ws *WebServer) getLandingPage(w http.ResponseWriter, r *http.Request) {
+	ws.tmpl.ExecuteTemplate(w, "landing.html", nil)
 }

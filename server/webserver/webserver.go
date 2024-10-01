@@ -2,23 +2,25 @@ package webserver
 
 import (
 	"context"
+	"html/template"
 	"log/slog"
+	"net/http"
 	"os"
 	"sync"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/compress"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/gofiber/template/html/v2"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/google/uuid"
 	"github.com/superbarne/fish/aquarium"
 	"github.com/superbarne/fish/storage"
 )
 
 type WebServer struct {
-	app     *fiber.App
+	server *http.Server
+	router chi.Router
+
+	tmpl    *template.Template
 	log     *slog.Logger
 	storage *storage.Storage
 
@@ -27,18 +29,15 @@ type WebServer struct {
 }
 
 func NewWebServer(log *slog.Logger, store *storage.Storage) *WebServer {
-	// Initialize standard Go html template engine
-	engine := html.New("./views", ".html")
-	engine.Reload(true)
-
-	// create folders
-	os.MkdirAll("./uploads", os.ModePerm)
-	os.MkdirAll("./data", os.ModePerm)
+	tmpl, err := template.ParseGlob("./views/*.html")
+	if err != nil {
+		log.Error("Failed to parse templates", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 
 	ws := &WebServer{
-		app: fiber.New(fiber.Config{
-			Views: engine,
-		}),
+		router:  chi.NewRouter(),
+		tmpl:    tmpl,
 		log:     log,
 		storage: store,
 		aquariums: map[uuid.UUID]*aquarium.Aquarium{
@@ -46,24 +45,29 @@ func NewWebServer(log *slog.Logger, store *storage.Storage) *WebServer {
 		},
 	}
 
-	ws.app.Use(recover.New(recover.Config{
-		EnableStackTrace: true,
-	}))
-	ws.app.Use(compress.New())
-	ws.app.Use(limiter.New())
-	ws.app.Use(cors.New(
-		cors.Config{
-			AllowOrigins: "*",
-		},
-	))
+	// add chi middlewares
+	ws.router.Use(middleware.Recoverer)
+	ws.router.Use(middleware.RequestID)
+	ws.router.Use(middleware.Compress(5, "gzip"))
+	ws.router.Use(middleware.StripSlashes)
+	ws.router.Use(cors.AllowAll().Handler)
 
-	ws.app.Get("/", ws.ServeLandingPage)
-	ws.app.Static("/assets", "./assets/app")
-	ws.app.Static("/aquarium", "./assets/aquarium")
-	ws.app.Static("/fishs", "./uploads")
-	ws.app.Get("/aquarium/:id/sse", ws.ServeSSE)
-	ws.app.Get("/aquarium/:id", ws.UploadFish)
-	ws.app.Post("/aquarium/:id", ws.UploadFish)
+	ws.router.Get("/", ws.getLandingPage)
+	ws.router.Handle("/assets/*", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets/app"))))
+
+	ws.router.Route("/aquarium", func(r chi.Router) {
+		r.Route("/{aquariumID:[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}}", func(r chi.Router) {
+			r.Get("/fishs/{fishID}.png", ws.getFishImage)
+
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.NoCache)
+				r.Get("/", ws.uploadFish)
+				r.Post("/", ws.uploadFish)
+				r.Get("/sse", ws.sseFish)
+			})
+		})
+		r.Handle("/*", http.StripPrefix("/aquarium", http.FileServer(http.Dir("./assets/aquarium"))))
+	})
 
 	return ws
 }
@@ -75,9 +79,16 @@ func (ws *WebServer) Listen() error {
 		port = "3000"
 	}
 
-	return ws.app.Listen(":" + port)
+	ws.server = &http.Server{
+		Addr:    ":" + port,
+		Handler: ws.router,
+	}
+
+	ws.log.Info("WebServer is running", slog.String("port", port))
+
+	return ws.server.ListenAndServe()
 }
 
 func (ws *WebServer) Shutdown(ctx context.Context) error {
-	return ws.app.ShutdownWithContext(ctx)
+	return ws.server.Shutdown(ctx)
 }

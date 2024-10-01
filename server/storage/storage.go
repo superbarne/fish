@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"image"
+	"io"
 	"mime/multipart"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/fogleman/gg"
-	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/superbarne/fish/models"
 )
@@ -159,7 +159,7 @@ func (s *Storage) FishMetadata(aquariumID, fishID uuid.UUID) (*models.Fish, erro
 	return fish, nil
 }
 
-func (s *Storage) SaveTmpFishImageFromRequest(ctx *fiber.Ctx, aquariumID uuid.UUID, fishID uuid.UUID, file *multipart.FileHeader) (string, error) {
+func (s *Storage) SaveTmpFishImageFromRequest(aquariumID uuid.UUID, fishID uuid.UUID, file multipart.File, multipartHeader *multipart.FileHeader) (string, error) {
 	if aquariumID == uuid.Nil {
 		return "", ErrBadAquariumID
 	}
@@ -173,8 +173,19 @@ func (s *Storage) SaveTmpFishImageFromRequest(ctx *fiber.Ctx, aquariumID uuid.UU
 		return "", err
 	}
 
-	fileName := fishID.String() + filepath.Ext(file.Filename)
-	return filepath.Join(tmpFolder, fileName), ctx.SaveFile(file, filepath.Join(tmpFolder, fileName))
+	fileName := fishID.String() + filepath.Ext(multipartHeader.Filename)
+
+	out, err := os.Create(filepath.Join(tmpFolder, fileName))
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, file); err != nil {
+		return "", err
+	}
+
+	return filepath.Join(tmpFolder, fileName), nil
 }
 
 func (s *Storage) FishImagePath(aquariumID, fishID uuid.UUID) string {

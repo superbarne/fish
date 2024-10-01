@@ -3,20 +3,22 @@ package webserver
 import (
 	"errors"
 	"log/slog"
+	"net/http"
 	"os"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/superbarne/fish/aquarium"
 	"github.com/superbarne/fish/imageprocess"
 	"github.com/superbarne/fish/models"
 )
 
-func (ws *WebServer) UploadFish(c *fiber.Ctx) error {
+func (ws *WebServer) uploadFish(w http.ResponseWriter, r *http.Request) {
 	// validate id
-	aquariumID, err := uuid.Parse(c.Params("id"))
+	aquariumID, err := uuid.Parse(chi.URLParam(r, "aquariumID"))
 	if err != nil {
-		return c.Redirect("/aquarium")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
 
 	var aquarium *aquarium.Aquarium
@@ -30,37 +32,46 @@ func (ws *WebServer) UploadFish(c *fiber.Ctx) error {
 		}
 		return nil
 	}(); err != nil {
-		return c.Redirect("/aquarium", fiber.StatusSeeOther)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
 
-	if c.Method() == fiber.MethodPost {
+	if r.Method == http.MethodPost {
 		// Get the file from the request
-		file, err := c.FormFile("image")
+		file, multipartHeader, err := r.FormFile("image")
 		if err != nil {
 			ws.log.Error("Failed to get image from request", slog.String("error", err.Error()))
-			return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
+			http.Redirect(w, r, "/aquarium/"+aquariumID.String(), http.StatusSeeOther)
+			return
 		}
+		defer file.Close()
 
 		// is file a image
-		if file.Header.Get("Content-Type") != "image/png" && file.Header.Get("Content-Type") != "image/jpeg" && file.Header.Get("Content-Type") != "image/jpg" {
-			ws.log.Error("File is not a image", slog.String("content-type", file.Header.Get("Content-Type")))
-			return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
+		if multipartHeader.Header.Get("Content-Type") != "image/png" && multipartHeader.Header.Get("Content-Type") != "image/jpeg" && multipartHeader.Header.Get("Content-Type") != "image/jpg" {
+			ws.log.Error("File is not a image", slog.String("content-type", multipartHeader.Header.Get("Content-Type")))
+			http.Redirect(w, r, "/aquarium/"+aquariumID.String(), http.StatusSeeOther)
+			return
 		}
 
-		name := c.FormValue("name", "Boid")
+		name := r.FormValue("name")
+		if name == "" {
+			name = "Boid"
+		}
 		fishID := uuid.New()
 
-		tmpFilePath, err := ws.storage.SaveTmpFishImageFromRequest(c, aquarium.ID, fishID, file)
+		tmpFilePath, err := ws.storage.SaveTmpFishImageFromRequest(aquarium.ID, fishID, file, multipartHeader)
 		if err != nil {
 			ws.log.Error("Failed to save image", slog.String("error", err.Error()))
-			return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
+			http.Redirect(w, r, "/aquarium/"+aquariumID.String(), http.StatusSeeOther)
+			return
 		}
 
 		// Process Image
 		targetPath := ws.storage.FishImagePath(aquarium.ID, fishID)
 		if err := imageprocess.ProcessImage(tmpFilePath, targetPath, ws.log); err != nil {
 			ws.log.Error("Failed to process image", slog.String("error", err.Error()))
-			return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
+			http.Redirect(w, r, "/aquarium/"+aquariumID.String(), http.StatusSeeOther)
+			return
 		}
 
 		// Remove tmp file
@@ -79,16 +90,17 @@ func (ws *WebServer) UploadFish(c *fiber.Ctx) error {
 
 		if err := ws.storage.SaveFishMetadata(aquariumID, fish); err != nil {
 			ws.log.Error("Failed to save fish metadata", slog.String("error", err.Error()))
-			return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
+			http.Redirect(w, r, "/aquarium/"+aquariumID.String(), http.StatusSeeOther)
+			return
 		}
 
 		aquarium.AddFish(fish)
 
-		return c.Redirect("/aquarium/"+aquariumID.String(), fiber.StatusSeeOther)
+		http.Redirect(w, r, "/aquarium/"+aquariumID.String(), http.StatusSeeOther)
+		return
 	}
 
-	return c.Render("upload", fiber.Map{
-		"ID":    aquariumID.String(),
-		"Title": "Go Fiber Template Example",
+	ws.tmpl.ExecuteTemplate(w, "upload.html", map[string]interface{}{
+		"ID": aquariumID.String(),
 	})
 }
