@@ -1,16 +1,19 @@
 package imageprocess
 
 import (
-	"log"
+	"log/slog"
+	"os"
+	"path/filepath"
 
 	"github.com/fogleman/gg"
 )
 
 // ProcessImage remove white background from image. TargetPath need a .png extension!
-func ProcessImage(srcPath string, targetPath string) {
+func ProcessImage(srcPath string, targetPath string, log *slog.Logger) error {
 	src, err := gg.LoadImage(srcPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Error("Failed to load image", slog.String("error", err.Error()))
+		return err
 	}
 
 	w := src.Bounds().Size().X
@@ -36,8 +39,18 @@ func ProcessImage(srcPath string, targetPath string) {
 		}
 	}
 
+	// save image
+	filePath := filepath.Dir(targetPath)
+	if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
+		log.Error("Failed to create folder", slog.String("error", err.Error()))
+		return err
+	}
+
 	err = gg.SavePNG(targetPath, im.Image())
 	if err != nil {
-		log.Fatal(err)
+		log.Error("Failed to save image", slog.String("error", err.Error()))
+		return err
 	}
+
+	return nil
 }

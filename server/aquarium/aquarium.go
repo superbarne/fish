@@ -2,13 +2,11 @@ package aquarium
 
 import (
 	"context"
-	"encoding/json"
-	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/google/uuid"
 	"github.com/superbarne/fish/models"
+	"github.com/superbarne/fish/storage"
 )
 
 type Aquarium struct {
@@ -16,42 +14,25 @@ type Aquarium struct {
 
 	fishes []*models.Fish
 
+	storage         *storage.Storage
 	subscribers     map[context.Context]chan *models.Fish
 	subscribersLock sync.RWMutex
 }
 
-func NewAquarium(id uuid.UUID) *Aquarium {
+func NewAquarium(id uuid.UUID, storage *storage.Storage) *Aquarium {
 	aquarium := &Aquarium{
 		ID: id,
 
+		storage:     storage,
 		subscribers: make(map[context.Context]chan *models.Fish),
 	}
 
-	// create folders
-	os.MkdirAll(filepath.Join("./uploads", id.String()), os.ModePerm)
-	os.MkdirAll(filepath.Join("./data", id.String()), os.ModePerm)
-
-	// read existing fishes
-	files, err := os.ReadDir(filepath.Join("./data", id.String()))
+	fishes, err := aquarium.storage.Fishes(id)
 	if err != nil {
 		panic(err)
 	}
 
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-
-		readFile, err := os.ReadFile(filepath.Join("./data", id.String(), file.Name()))
-		if err != nil {
-			panic(err)
-		}
-
-		fish := &models.Fish{}
-		json.Unmarshal(readFile, fish)
-
-		aquarium.fishes = append(aquarium.fishes, fish)
-	}
+	aquarium.fishes = append(aquarium.fishes, fishes...)
 
 	return aquarium
 }

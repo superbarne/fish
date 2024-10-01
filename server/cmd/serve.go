@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/superbarne/fish/storage"
 	"github.com/superbarne/fish/webserver"
 )
 
@@ -30,7 +31,9 @@ func serve() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	server := webserver.NewWebServer(log)
+	store := storage.NewStorage("./data")
+
+	server := webserver.NewWebServer(log, store)
 
 	go func() {
 		defer cancel()

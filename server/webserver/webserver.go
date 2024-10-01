@@ -14,17 +14,19 @@ import (
 	"github.com/gofiber/template/html/v2"
 	"github.com/google/uuid"
 	"github.com/superbarne/fish/aquarium"
+	"github.com/superbarne/fish/storage"
 )
 
 type WebServer struct {
-	app *fiber.App
-	log *slog.Logger
+	app     *fiber.App
+	log     *slog.Logger
+	storage *storage.Storage
 
 	aquariums     map[uuid.UUID]*aquarium.Aquarium
 	aquariumsLock sync.RWMutex
 }
 
-func NewWebServer(log *slog.Logger) *WebServer {
+func NewWebServer(log *slog.Logger, store *storage.Storage) *WebServer {
 	// Initialize standard Go html template engine
 	engine := html.New("./views", ".html")
 	engine.Reload(true)
@@ -37,13 +39,16 @@ func NewWebServer(log *slog.Logger) *WebServer {
 		app: fiber.New(fiber.Config{
 			Views: engine,
 		}),
-		log: log,
+		log:     log,
+		storage: store,
 		aquariums: map[uuid.UUID]*aquarium.Aquarium{
-			uuid.MustParse("38d7976d-3c27-4e74-8bfe-a9ec44318d3f"): aquarium.NewAquarium(uuid.MustParse("38d7976d-3c27-4e74-8bfe-a9ec44318d3f")),
+			uuid.MustParse("38d7976d-3c27-4e74-8bfe-a9ec44318d3f"): aquarium.NewAquarium(uuid.MustParse("38d7976d-3c27-4e74-8bfe-a9ec44318d3f"), store),
 		},
 	}
 
-	ws.app.Use(recover.New())
+	ws.app.Use(recover.New(recover.Config{
+		EnableStackTrace: true,
+	}))
 	ws.app.Use(compress.New())
 	ws.app.Use(limiter.New())
 	ws.app.Use(cors.New(
@@ -66,6 +71,9 @@ func NewWebServer(log *slog.Logger) *WebServer {
 func (ws *WebServer) Listen() error {
 	// read env
 	port := os.Getenv("AQUARIUM_PORT")
+	if port == "" {
+		port = "3000"
+	}
 
 	return ws.app.Listen(":" + port)
 }
