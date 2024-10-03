@@ -54,13 +54,15 @@ func (ws *WebServer) sseAquarium(w http.ResponseWriter, r *http.Request) {
 
 	for _, fish := range fishes {
 		raw, _ := json.Marshal(fish)
-		fmt.Fprintf(w, "event: fish\ndata: %s\n\n", raw)
+		fmt.Fprintf(w, "event: fishjoin\ndata: %s\n\n", raw)
 	}
 	flusher.Flush()
 
 	// subscribe to new fishes
 	newFishes := ws.pubsub.Subscribe("aquarium:"+aquariumID.String(), ctx, 10)
 	defer ws.pubsub.Unsubscribe("aquarium:"+aquariumID.String(), ctx)
+	deleteFishes := ws.pubsub.Subscribe("aquarium:"+aquariumID.String()+":delete", ctx, 10)
+	defer ws.pubsub.Unsubscribe("aquarium:"+aquariumID.String()+":delete", ctx)
 
 	for {
 		select {
@@ -69,9 +71,13 @@ func (ws *WebServer) sseAquarium(w http.ResponseWriter, r *http.Request) {
 		case <-ticker.C:
 			fmt.Fprintf(w, "event: ping\ndata: {}\n\n")
 			flusher.Flush()
+		case deleteFishes := <-deleteFishes:
+			raw, _ := json.Marshal(deleteFishes)
+			fmt.Fprintf(w, "event: fishleft\ndata: %s\n\n", raw)
+			flusher.Flush()
 		case fish := <-newFishes:
 			raw, _ := json.Marshal(fish)
-			fmt.Fprintf(w, "event: fish\ndata: %s\n\n", raw)
+			fmt.Fprintf(w, "event: fishjoin\ndata: %s\n\n", raw)
 			flusher.Flush()
 		}
 	}

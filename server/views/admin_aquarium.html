@@ -52,6 +52,11 @@
                         <td>
                             {{ $Fish.CreatedAt }}
                         </td>
+                        <td>
+                            <form action="/admin/aquarium/{{$.Aquarium.ID}}/fishes/{{ $Fish.ID }}/delete" method="post">
+                                <input type="submit" value="Löschen">
+                            </form>
+                        </td>
                     </tr>
                     {{ end }}
                 </table>

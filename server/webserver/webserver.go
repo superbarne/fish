@@ -52,7 +52,6 @@ func NewWebServer(log *slog.Logger, pubsub *pubsub.PubSub, store *storage.Storag
 
 	ws.router.Route("/aquarium", func(r chi.Router) {
 		r.Route("/{aquariumID:[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}}", func(r chi.Router) {
-			r.Get("/fishs/{fishID}.png", ws.getFishImage)
 			r.Get("/fishes/{fishID}.png", ws.getFishImage)
 
 			r.Group(func(r chi.Router) {
@@ -70,6 +69,7 @@ func NewWebServer(log *slog.Logger, pubsub *pubsub.PubSub, store *storage.Storag
 		r.Get("/", ws.listAdminAquariums)
 		r.Route("/aquarium/{aquariumID:[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}}", func(r chi.Router) {
 			r.Get("/", ws.showAdminAquarium)
+			r.Post("/fishes/{fishID}/delete", ws.deleteAdminFish)
 		})
 	})
 

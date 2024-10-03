@@ -4,14 +4,40 @@
 
 Serve the aquarium frontend.
 
-## `/aquarium/38d7976d-3c27-4e74-8bfe-a9ec44318d3f/`
+## Photo Upload
 
-Photo Upload
+`/aquarium/<aquariumID>`
 
-## `/aquarium/38d7976d-3c27-4e74-8bfe-a9ec44318d3f/sse`
+Upload a fish image to the aquarium.
 
-Send Events at new Images.
+## Subscribe Fish Changes
 
-## `/fishs/<aquariumID>/filename.png`
+`/aquarium/<aquariumID>/sse`
 
-Serve the static file upload folder.
+Send new Fishes or Fish deletions (over Admin Panel).
+
+Messages:
+
+```
+event: ping
+data: {}
+
+event: fishleft
+data: {"id":"<fishID>","aquarium_id":"<aquariumID>","name":"<fishName>","filename":"<filename>"}
+
+event: fishjoin
+data: {"id":"<fishID>","aquarium_id":"<aquariumID>","name":"<fishName>","filename":"<filename>"}
+```
+
+## Get Fish Image
+
+`/aquarium/<aquariumID>/fishes/<fishID>.png`
+
+Serve the fish image file.
+
+## Admin Panel
+
+- Show Aquariums
+- Delete Fishes
+
+`/admin`
