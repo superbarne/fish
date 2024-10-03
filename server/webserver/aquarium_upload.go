@@ -1,19 +1,17 @@
 package webserver
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
 	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/superbarne/fish/aquarium"
 	"github.com/superbarne/fish/imageprocess"
 	"github.com/superbarne/fish/models"
 )
 
-func (ws *WebServer) uploadFish(w http.ResponseWriter, r *http.Request) {
+func (ws *WebServer) uploadAquariumFish(w http.ResponseWriter, r *http.Request) {
 	// validate id
 	aquariumID, err := uuid.Parse(chi.URLParam(r, "aquariumID"))
 	if err != nil {
@@ -21,17 +19,9 @@ func (ws *WebServer) uploadFish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var aquarium *aquarium.Aquarium
-	var ok bool
-	if err := func() error {
-		ws.aquariumsLock.RLock()
-		defer ws.aquariumsLock.RUnlock()
-		aquarium, ok = ws.aquariums[aquariumID]
-		if !ok {
-			return errors.New("aquarium not found")
-		}
-		return nil
-	}(); err != nil {
+	// find aquarium
+	aquarium, err := ws.storage.Aquarium(aquariumID)
+	if err != nil {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -53,12 +43,7 @@ func (ws *WebServer) uploadFish(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		name := r.FormValue("name")
-		if name == "" {
-			name = "Boid"
-		}
 		fishID := uuid.New()
-
 		tmpFilePath, err := ws.storage.SaveTmpFishImageFromRequest(aquarium.ID, fishID, file, multipartHeader)
 		if err != nil {
 			ws.log.Error("Failed to save image", slog.String("error", err.Error()))
@@ -67,7 +52,12 @@ func (ws *WebServer) uploadFish(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Process Image
-		targetPath := ws.storage.FishImagePath(aquarium.ID, fishID)
+		targetPath, err := ws.storage.FishImagePath(aquarium.ID, fishID)
+		if err != nil {
+			ws.log.Error("Failed to get fish image path", slog.String("error", err.Error()))
+			http.Redirect(w, r, "/aquarium/"+aquariumID.String(), http.StatusSeeOther)
+			return
+		}
 		if err := imageprocess.ProcessImage(tmpFilePath, targetPath, ws.log); err != nil {
 			ws.log.Error("Failed to process image", slog.String("error", err.Error()))
 			http.Redirect(w, r, "/aquarium/"+aquariumID.String(), http.StatusSeeOther)
@@ -79,6 +69,11 @@ func (ws *WebServer) uploadFish(w http.ResponseWriter, r *http.Request) {
 			ws.log.Error("Failed to remove temp file", slog.String("error", err.Error()))
 		}
 
+		name := r.FormValue("name")
+		if name == "" {
+			name = "Boid"
+		}
+
 		// Write Json with metadata about the uploaded file
 		fish := &models.Fish{
 			ID:         fishID,
@@ -88,19 +83,19 @@ func (ws *WebServer) uploadFish(w http.ResponseWriter, r *http.Request) {
 			Approved:   false,
 		}
 
-		if err := ws.storage.SaveFishMetadata(aquariumID, fish); err != nil {
-			ws.log.Error("Failed to save fish metadata", slog.String("error", err.Error()))
+		if err := ws.storage.InsertFish(aquariumID, fish); err != nil {
+			ws.log.Error("Failed to save fish", slog.String("error", err.Error()))
 			http.Redirect(w, r, "/aquarium/"+aquariumID.String(), http.StatusSeeOther)
 			return
 		}
 
-		aquarium.AddFish(fish)
+		ws.pubsub.Publish("aquarium:"+aquariumID.String(), fish)
 
 		http.Redirect(w, r, "/aquarium/"+aquariumID.String(), http.StatusSeeOther)
 		return
 	}
 
 	ws.tmpl.ExecuteTemplate(w, "upload.html", map[string]interface{}{
-		"ID": aquariumID.String(),
+		"ID": aquarium.ID.String(),
 	})
 }

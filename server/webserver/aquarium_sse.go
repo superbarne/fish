@@ -8,10 +8,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/superbarne/fish/aquarium"
 )
 
-func (ws *WebServer) sseFish(w http.ResponseWriter, r *http.Request) {
+func (ws *WebServer) sseAquarium(w http.ResponseWriter, r *http.Request) {
 	// validate id
 	aquariumID, err := uuid.Parse(chi.URLParam(r, "aquariumID"))
 	if err != nil {
@@ -20,20 +19,9 @@ func (ws *WebServer) sseFish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var aquarium *aquarium.Aquarium
-	func() {
-		ws.aquariumsLock.RLock()
-		defer ws.aquariumsLock.RUnlock()
-
-		var ok bool
-		if aquarium, ok = ws.aquariums[aquariumID]; !ok {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("404 not found"))
-			return
-		}
-	}()
-
-	if aquarium == nil {
+	// find aquarium
+	_, err = ws.storage.Aquarium(aquariumID)
+	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("404 not found"))
 		return
@@ -45,7 +33,7 @@ func (ws *WebServer) sseFish(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	f, ok := w.(http.Flusher)
+	flusher, ok := w.(http.Flusher)
 	if !ok {
 		return
 	}
@@ -54,13 +42,25 @@ func (ws *WebServer) sseFish(w http.ResponseWriter, r *http.Request) {
 	defer ticker.Stop()
 
 	fmt.Fprintf(w, "event: ping\ndata: {}\n\n")
+	flusher.Flush()
 
 	// send old fishes
-	for _, fish := range aquarium.Fishes() {
+	fishes, err := ws.storage.Fishes(aquariumID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("500 internal server error"))
+		return
+	}
+
+	for _, fish := range fishes {
 		raw, _ := json.Marshal(fish)
 		fmt.Fprintf(w, "event: fish\ndata: %s\n\n", raw)
 	}
-	f.Flush()
+	flusher.Flush()
+
+	// subscribe to new fishes
+	newFishes := ws.pubsub.Subscribe("aquarium:"+aquariumID.String(), ctx, 10)
+	defer ws.pubsub.Unsubscribe("aquarium:"+aquariumID.String(), ctx)
 
 	for {
 		select {
@@ -68,11 +68,11 @@ func (ws *WebServer) sseFish(w http.ResponseWriter, r *http.Request) {
 			return
 		case <-ticker.C:
 			fmt.Fprintf(w, "event: ping\ndata: {}\n\n")
-			f.Flush()
-		case fish := <-aquarium.RealtimeFishes(ctx):
+			flusher.Flush()
+		case fish := <-newFishes:
 			raw, _ := json.Marshal(fish)
 			fmt.Fprintf(w, "event: fish\ndata: %s\n\n", raw)
-			f.Flush()
+			flusher.Flush()
 		}
 	}
 }

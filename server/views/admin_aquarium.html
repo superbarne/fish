@@ -1,0 +1,61 @@
+<html>
+    <head>
+        <title>Aquarium</title>
+        <link rel="stylesheet" href="/assets/reset.css">
+        <style>
+            body {
+                background-color: #1E84C5;
+                color: #FDFEFF;
+                font-family: Verdana, Geneva, Tahoma, sans-serif;
+            }
+            .container {
+                max-width: 600px;
+                margin: 30 auto;
+            }
+            .logo {
+                width: 200px;
+                margin-left: -28px;
+            }
+            a {
+                /* orange link */
+                color: #FFA500;
+                text-decoration: none;
+                border-bottom: 2px solid #FFA500;
+            }
+            a:hover {
+                /* very dark orange link */
+                color: #FF8C00;
+                border-bottom: 2px solid transparent;
+            }
+            main {
+                font-size: 12px;
+            }
+            .table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 12px;
+            }
+        </style>
+        <link rel="icon" href="/assets/favicon.ico">
+    </head>
+    <body>
+        <div class="container">
+            <main>
+                <a href="/admin">Zur Übersicht</a><br /><br />
+                <a href="/aquarium/{{.Aquarium.ID}}" target="_blank">Upload</a><br /><br />
+                <table class="table">
+                    {{ range $key, $Fish := .Fishes }}
+                    <tr>
+                        <td>
+                            <img src="/aquarium/{{$.Aquarium.ID}}/fishes/{{ $Fish.Filename }}" width="100">
+                        </td>
+                        <td>
+                            {{ $Fish.CreatedAt }}
+                        </td>
+                    </tr>
+                    {{ end }}
+                </table>
+            </main>
+        </div>
+    </body>
+</html>
