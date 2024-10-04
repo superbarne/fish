@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/superbarne/fish/models"
 )
 
 func (ws *WebServer) sseAquarium(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +54,9 @@ func (ws *WebServer) sseAquarium(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, fish := range fishes {
+		if !fish.Approved {
+			continue
+		}
 		raw, _ := json.Marshal(fish)
 		fmt.Fprintf(w, "event: fishjoin\ndata: %s\n\n", raw)
 	}
@@ -76,6 +80,10 @@ func (ws *WebServer) sseAquarium(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "event: fishleft\ndata: %s\n\n", raw)
 			flusher.Flush()
 		case fish := <-newFishes:
+			if !fish.(*models.Fish).Approved {
+				continue
+			}
+
 			raw, _ := json.Marshal(fish)
 			fmt.Fprintf(w, "event: fishjoin\ndata: %s\n\n", raw)
 			flusher.Flush()

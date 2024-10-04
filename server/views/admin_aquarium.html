@@ -83,6 +83,12 @@
                 <ul>
                     <li><a href="/admin">Zur Übersicht</a></li>
                     <li><a href="/aquarium/{{.Aquarium.ID}}" target="_blank">Upload</a></li>
+                    <li>
+                        Need Approval: {{ if .Aquarium.NeedApproval }}Yes{{ else }}No{{ end }} 
+                        <form action="/admin/aquarium/{{.Aquarium.ID}}/approval" method="post">
+                            <input type="submit" value="Toggle">
+                        </form>
+                    </li>
                 </ul>
             </nav>
         </header>
@@ -96,6 +102,10 @@
                     {{ $Fish.Name }}
                     <form action="/admin/aquarium/{{$.Aquarium.ID}}/fishes/{{ $Fish.ID }}/delete" method="post">
                         <input type="submit" value="Löschen">
+                    </form>
+                    <form action="/admin/aquarium/{{$.Aquarium.ID}}/fishes/{{ $Fish.ID }}/approve" method="post">
+                        <input type="hidden" name="approved" value="{{ if $Fish.Approved }}false{{ else }}true{{ end }}">
+                        <input type="submit" value="{{ if $Fish.Approved }}Approved{{ else }}Approve{{ end }}">
                     </form>
                 </div>
                 {{ end }}

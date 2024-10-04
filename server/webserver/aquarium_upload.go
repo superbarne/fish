@@ -80,7 +80,7 @@ func (ws *WebServer) uploadAquariumFish(w http.ResponseWriter, r *http.Request) 
 			AquariumID: aquarium.ID,
 			Name:       name,
 			Filename:   fishID.String() + ".png",
-			Approved:   false,
+			Approved:   !aquarium.NeedApproval, // if need approval true, set fish approved value to false
 		}
 
 		if err := ws.storage.InsertFish(aquariumID, fish); err != nil {

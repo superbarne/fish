@@ -69,7 +69,11 @@ func NewWebServer(log *slog.Logger, pubsub *pubsub.PubSub, store *storage.Storag
 		r.Get("/", ws.listAdminAquariums)
 		r.Route("/aquarium/{aquariumID:[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}}", func(r chi.Router) {
 			r.Get("/", ws.showAdminAquarium)
-			r.Post("/fishes/{fishID}/delete", ws.deleteAdminFish)
+			r.Post("/approval", ws.toggleAdminNeedApproval)
+			r.Route("/fishes/{fishID:[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}}", func(r chi.Router) {
+				r.Post("/delete", ws.deleteAdminFish)
+				r.Post("/approve", ws.approveAdminFish)
+			})
 		})
 	})
 
