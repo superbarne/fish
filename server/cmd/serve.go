@@ -35,6 +35,9 @@ func serve() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
+	commit := gitCommit()
+	log.Info("Aquarium", slog.String("commit", commit))
+
 	ps := pubsub.NewPubSub()
 	store := storage.NewStorage("./data")
 
@@ -48,7 +51,7 @@ func serve() {
 		return
 	}
 
-	server := webserver.NewWebServer(log, ps, store)
+	server := webserver.NewWebServer(log, ps, store, commit)
 
 	go func() {
 		defer cancel()

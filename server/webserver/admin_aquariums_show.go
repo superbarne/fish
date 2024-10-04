@@ -29,5 +29,6 @@ func (ws *WebServer) showAdminAquarium(w http.ResponseWriter, r *http.Request) {
 	ws.tmpl.ExecuteTemplate(w, "admin_aquarium.html", map[string]interface{}{
 		"Aquarium": aquarium,
 		"Fishes":   fishes,
+		"Revision": ws.gitCommit,
 	})
 }

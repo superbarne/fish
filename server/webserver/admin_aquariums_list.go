@@ -13,5 +13,6 @@ func (ws *WebServer) listAdminAquariums(w http.ResponseWriter, r *http.Request) 
 
 	ws.tmpl.ExecuteTemplate(w, "admin_aquariums.html", map[string]interface{}{
 		"Aquariums": aquariums,
+		"Revision":  ws.gitCommit,
 	})
 }

@@ -71,6 +71,12 @@
             border-radius: 20px;
             margin-bottom: 5px;
         }
+
+        footer {
+            font-size: 10px;
+            text-align: center;
+            margin-top: 20px;
+        }
     </style>
     <link rel="icon" href="/assets/favicon.ico">
 </head>
@@ -111,6 +117,9 @@
                 {{ end }}
             </div>
         </main>
+        <footer>
+            <p>Version: {{ .Revision }}</p>
+        </footer>
     </div>
 </body>
 
