@@ -49,9 +49,16 @@
         .formrow {
             margin-bottom: 20px;
         }
+
         .formrow label {
             display: block;
             margin-bottom: 5px;
+        }
+
+        footer {
+            font-size: 10px;
+            text-align: center;
+            margin-top: 20px;
         }
     </style>
     <link rel="icon" href="/assets/favicon.ico">
@@ -76,6 +83,9 @@
                 </div>
             </form>
         </div>
+        <footer>
+            <p>Version: {{ .Revision }}</p>
+        </footer>
     </div>
 </body>
 

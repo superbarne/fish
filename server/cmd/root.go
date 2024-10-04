@@ -1,6 +1,10 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"runtime/debug"
+
+	"github.com/spf13/cobra"
+)
 
 func NewRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
@@ -17,4 +21,15 @@ func NewRootCmd() *cobra.Command {
 
 func Execute() {
 	NewRootCmd().Execute()
+}
+
+func gitCommit() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				return setting.Value
+			}
+		}
+	}
+	return "local"
 }

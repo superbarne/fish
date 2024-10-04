@@ -96,6 +96,7 @@ func (ws *WebServer) uploadAquariumFish(w http.ResponseWriter, r *http.Request) 
 	}
 
 	ws.tmpl.ExecuteTemplate(w, "upload.html", map[string]interface{}{
-		"ID": aquarium.ID.String(),
+		"ID":       aquarium.ID.String(),
+		"Revision": ws.gitCommit,
 	})
 }

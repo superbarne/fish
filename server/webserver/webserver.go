@@ -20,14 +20,15 @@ type WebServer struct {
 	server *http.Server
 	router chi.Router
 
-	tmpl *template.Template
-	log  *slog.Logger
+	gitCommit string
+	tmpl      *template.Template
+	log       *slog.Logger
 
 	pubsub  *pubsub.PubSub
 	storage *storage.Storage
 }
 
-func NewWebServer(log *slog.Logger, pubsub *pubsub.PubSub, store *storage.Storage) *WebServer {
+func NewWebServer(log *slog.Logger, pubsub *pubsub.PubSub, store *storage.Storage, gitCommit string) *WebServer {
 	tmpl, err := template.ParseFS(views.Views, "*.html")
 	if err != nil {
 		log.Error("Failed to parse templates", slog.String("error", err.Error()))
@@ -35,11 +36,12 @@ func NewWebServer(log *slog.Logger, pubsub *pubsub.PubSub, store *storage.Storag
 	}
 
 	ws := &WebServer{
-		router:  chi.NewRouter(),
-		tmpl:    tmpl,
-		log:     log,
-		pubsub:  pubsub,
-		storage: store,
+		router:    chi.NewRouter(),
+		tmpl:      tmpl,
+		log:       log,
+		gitCommit: gitCommit,
+		pubsub:    pubsub,
+		storage:   store,
 	}
 
 	// add chi middlewares

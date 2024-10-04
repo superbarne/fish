@@ -5,5 +5,7 @@ import (
 )
 
 func (ws *WebServer) getLandingPage(w http.ResponseWriter, r *http.Request) {
-	ws.tmpl.ExecuteTemplate(w, "landing.html", nil)
+	ws.tmpl.ExecuteTemplate(w, "landing.html", map[string]interface{}{
+		"Revision": ws.gitCommit,
+	})
 }
