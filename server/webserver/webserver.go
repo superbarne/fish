@@ -10,8 +10,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/superbarne/fish/assets/app"
 	"github.com/superbarne/fish/pubsub"
 	"github.com/superbarne/fish/storage"
+	"github.com/superbarne/fish/views"
 )
 
 type WebServer struct {
@@ -26,7 +28,7 @@ type WebServer struct {
 }
 
 func NewWebServer(log *slog.Logger, pubsub *pubsub.PubSub, store *storage.Storage) *WebServer {
-	tmpl, err := template.ParseGlob("./views/*.html")
+	tmpl, err := template.ParseFS(views.Views, "*.html")
 	if err != nil {
 		log.Error("Failed to parse templates", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -48,7 +50,7 @@ func NewWebServer(log *slog.Logger, pubsub *pubsub.PubSub, store *storage.Storag
 	ws.router.Use(cors.AllowAll().Handler)
 
 	ws.router.Get("/", ws.getLandingPage)
-	ws.router.Handle("/assets/*", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets/app"))))
+	ws.router.Handle("/assets/*", http.StripPrefix("/assets/", http.FileServerFS(app.Assets)))
 
 	ws.router.Route("/aquarium", func(r chi.Router) {
 		r.Route("/{aquariumID:[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}}", func(r chi.Router) {
