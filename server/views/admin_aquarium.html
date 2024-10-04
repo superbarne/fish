@@ -1,0 +1,117 @@
+<html>
+
+<head>
+    <title>Aquarium</title>
+    <link rel="stylesheet" href="/assets/reset.css">
+    <style>
+        body {
+            background-color: #1E84C5;
+            color: #FDFEFF;
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 30 auto;
+        }
+
+        .logo {
+            width: 100px;
+            margin-left: -15px;
+            margin-right: 15px;
+        }
+
+        a {
+            /* orange link */
+            color: #FFA500;
+            text-decoration: none;
+            border-bottom: 2px solid #FFA500;
+        }
+
+        a:hover {
+            /* very dark orange link */
+            color: #FF8C00;
+            border-bottom: 2px solid transparent;
+        }
+
+        nav {
+            margin: 20px 10px;
+        }
+        nav li{
+            margin: 5px 0px 15px;
+        }
+
+        main {
+            font-size: 12px;
+        }
+
+        header.small {
+            display: flex;
+            justify-content: left;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+
+        .fishdex {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-column-gap: 20px;
+            grid-row-gap: 20px;
+        }
+
+        .fishdex-item {
+            width: 100%;
+            height: 100%;
+            text-align: center;
+        }
+
+        .fishdex-img {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            margin-bottom: 5px;
+        }
+    </style>
+    <link rel="icon" href="/assets/favicon.ico">
+</head>
+
+<body>
+    <div class="container">
+        <header class="small">
+            <img src="/assets/logo.svg" alt="Aquarium" class="logo">
+            <nav>
+                <ul>
+                    <li><a href="/admin">Zur Übersicht</a></li>
+                    <li><a href="/aquarium/{{.Aquarium.ID}}" target="_blank">Upload</a></li>
+                    <li>
+                        Need Approval: {{ if .Aquarium.NeedApproval }}Yes{{ else }}No{{ end }} 
+                        <form action="/admin/aquarium/{{.Aquarium.ID}}/approval" method="post">
+                            <input type="submit" value="Toggle">
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+        </header>
+        <main>
+            <div class="fishdex">
+                {{ range $key, $Fish := .Fishes }}
+                <div class="fishdex-item">
+                    <div class="fishdex-img">
+                        <img src="/aquarium/{{$.Aquarium.ID}}/fishes/{{ $Fish.Filename }}" width="100%">
+                    </div>
+                    {{ $Fish.Name }}
+                    <form action="/admin/aquarium/{{$.Aquarium.ID}}/fishes/{{ $Fish.ID }}/delete" method="post">
+                        <input type="submit" value="Löschen">
+                    </form>
+                    <form action="/admin/aquarium/{{$.Aquarium.ID}}/fishes/{{ $Fish.ID }}/approve" method="post">
+                        <input type="hidden" name="approved" value="{{ if $Fish.Approved }}false{{ else }}true{{ end }}">
+                        <input type="submit" value="{{ if $Fish.Approved }}Approved{{ else }}Approve{{ end }}">
+                    </form>
+                </div>
+                {{ end }}
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>
