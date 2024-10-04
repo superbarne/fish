@@ -7,7 +7,7 @@ WORKDIR /app
 
 FROM base AS frontend_build
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm run build
+RUN BASE_URL=/aquarium/ pnpm run build
 
 FROM golang:1.23-alpine3.20 AS build
 WORKDIR /src
@@ -15,7 +15,7 @@ COPY ./server/. .
 
 RUN go mod download
 
-RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /src/bin/aquarium
+RUN go build -ldflags="-w -s" -o /src/bin/aquarium
 
 RUN ["chmod", "+x", "/src/bin/aquarium"]
 

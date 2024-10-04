@@ -93,7 +93,7 @@ export class Game {
   }
 
   async initServerConnection() {
-    const evtSource = new EventSource("http://127.0.0.1:8080/aquarium/38d7976d-3c27-4e74-8bfe-a9ec44318d3f/sse");
+    const evtSource = new EventSource("/aquarium/38d7976d-3c27-4e74-8bfe-a9ec44318d3f/sse");
     evtSource.addEventListener("ping", (event) => {
       console.log('ping', event.data)
     });
@@ -105,7 +105,7 @@ export class Game {
 
       // load texture
       if(!fishTextureMap.has(fish.id)) {
-        const imageReponse = await fetch(`http://127.0.0.1:8080/fishs/38d7976d-3c27-4e74-8bfe-a9ec44318d3f/${fish.filename}`)
+        const imageReponse = await fetch(`/fishs/38d7976d-3c27-4e74-8bfe-a9ec44318d3f/${fish.filename}`)
         const imageBlob = await imageReponse.blob()
         const texture = new TextureLoader().load(URL.createObjectURL(imageBlob));
         fishTextureMap.set(fish.id, texture)
