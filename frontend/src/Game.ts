@@ -1,4 +1,4 @@
-import { PerspectiveCamera, Scene, WebGLRenderer, AmbientLight, BoxGeometry, MeshNormalMaterial, Mesh, PlaneGeometry, MeshBasicMaterial, DoubleSide, Color, AxesHelper, TextureLoader, Texture } from "three";
+import { PerspectiveCamera, Scene, WebGLRenderer, AmbientLight, BoxGeometry, MeshNormalMaterial, Mesh, PlaneGeometry, MeshBasicMaterial, DoubleSide, Color, TextureLoader, Texture } from "three";
 import { Boid, randomVector } from "./Boid";
 import ImmersiveControls from '@depasquale/three-immersive-controls';
 import { gradientShaderMaterial } from "./Gradient";
@@ -65,7 +65,7 @@ export class Game {
     this.scene.add(backdropPlane);
 
     // light
-    const light = new AmbientLight( 0x404040, 38 ); // soft white light
+    const light = new AmbientLight( 0xffff00, 60 ); // soft white light
     this.scene.add( light );
 
     // renderer

@@ -1,4 +1,4 @@
-import { Vector3, TextureLoader, MeshBasicMaterial, PlaneGeometry, Mesh, DoubleSide, Group, Texture, AxesHelper, ShaderMaterial } from 'three';
+import { Vector3, TextureLoader, MeshBasicMaterial, PlaneGeometry, Mesh, DoubleSide, Group, Texture, ShaderMaterial } from 'three';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { Game } from './Game';
