@@ -51,6 +51,13 @@ func (ws *WebServer) uploadAquariumFish(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
+		defer func() {
+			// Remove tmp file
+			if err := os.Remove(tmpFilePath); err != nil {
+				ws.log.Error("Failed to remove temp file", slog.String("error", err.Error()))
+			}
+		}()
+
 		// Process Image
 		targetPath, err := ws.storage.FishImagePath(aquarium.ID, fishID)
 		if err != nil {
@@ -62,11 +69,6 @@ func (ws *WebServer) uploadAquariumFish(w http.ResponseWriter, r *http.Request) 
 			ws.log.Error("Failed to process image", slog.String("error", err.Error()))
 			http.Redirect(w, r, "/aquarium/"+aquariumID.String(), http.StatusSeeOther)
 			return
-		}
-
-		// Remove tmp file
-		if err := os.Remove(tmpFilePath); err != nil {
-			ws.log.Error("Failed to remove temp file", slog.String("error", err.Error()))
 		}
 
 		name := r.FormValue("name")
