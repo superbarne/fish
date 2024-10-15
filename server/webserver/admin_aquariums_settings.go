@@ -1,6 +1,7 @@
 package webserver
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -18,6 +19,7 @@ func (ws *WebServer) toggleAdminNeedApproval(w http.ResponseWriter, r *http.Requ
 	// find aquarium
 	aquarium, err := ws.storage.Aquarium(aquariumID)
 	if err != nil {
+		ws.log.Error("Failed to get aquarium", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
 	}
@@ -25,6 +27,7 @@ func (ws *WebServer) toggleAdminNeedApproval(w http.ResponseWriter, r *http.Requ
 	aquarium.NeedApproval = !aquarium.NeedApproval
 
 	if err := ws.storage.InsertAquarium(aquarium); err != nil {
+		ws.log.Error("Failed to save aquarium", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/admin/aquarium/"+aquarium.ID.String(), http.StatusSeeOther)
 		return
 	}

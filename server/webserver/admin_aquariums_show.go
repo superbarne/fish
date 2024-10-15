@@ -1,6 +1,7 @@
 package webserver
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -16,12 +17,14 @@ func (ws *WebServer) showAdminAquarium(w http.ResponseWriter, r *http.Request) {
 
 	aquarium, err := ws.storage.Aquarium(aquariumID)
 	if err != nil {
+		ws.log.Error("Failed to get aquarium", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
 	}
 
 	fishes, err := ws.storage.Fishes(aquariumID)
 	if err != nil {
+		ws.log.Error("Failed to get fishes", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
 	}

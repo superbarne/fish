@@ -22,6 +22,7 @@ func (ws *WebServer) uploadAquariumFish(w http.ResponseWriter, r *http.Request) 
 	// find aquarium
 	aquarium, err := ws.storage.Aquarium(aquariumID)
 	if err != nil {
+		ws.log.Error("Failed to get aquarium", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}

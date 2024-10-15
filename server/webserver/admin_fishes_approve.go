@@ -1,6 +1,7 @@
 package webserver
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -25,6 +26,7 @@ func (ws *WebServer) approveAdminFish(w http.ResponseWriter, r *http.Request) {
 	// find aquarium
 	aquarium, err := ws.storage.Aquarium(aquariumID)
 	if err != nil {
+		ws.log.Error("Failed to get aquarium", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
 	}
@@ -32,6 +34,7 @@ func (ws *WebServer) approveAdminFish(w http.ResponseWriter, r *http.Request) {
 	// find fish
 	fish, err := ws.storage.Fish(aquarium.ID, fishID)
 	if err != nil {
+		ws.log.Error("Failed to get fish", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/admin/aquarium/"+aquarium.ID.String(), http.StatusSeeOther)
 		return
 	}
@@ -46,6 +49,7 @@ func (ws *WebServer) approveAdminFish(w http.ResponseWriter, r *http.Request) {
 
 	// save
 	if err := ws.storage.InsertFish(aquarium.ID, fish); err != nil {
+		ws.log.Error("Failed to save fish", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/admin/aquarium/"+aquarium.ID.String(), http.StatusSeeOther)
 		return
 	}

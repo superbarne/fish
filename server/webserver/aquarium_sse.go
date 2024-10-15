@@ -3,6 +3,7 @@ package webserver
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -23,6 +24,7 @@ func (ws *WebServer) sseAquarium(w http.ResponseWriter, r *http.Request) {
 	// find aquarium
 	_, err = ws.storage.Aquarium(aquariumID)
 	if err != nil {
+		ws.log.Error("Failed to get aquarium", slog.String("error", err.Error()))
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("404 not found"))
 		return
@@ -48,6 +50,7 @@ func (ws *WebServer) sseAquarium(w http.ResponseWriter, r *http.Request) {
 	// send old fishes
 	fishes, err := ws.storage.Fishes(aquariumID)
 	if err != nil {
+		ws.log.Error("Failed to get fishes", slog.String("error", err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("500 internal server error"))
 		return

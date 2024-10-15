@@ -2,6 +2,7 @@ package webserver
 
 import (
 	"image/png"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -26,6 +27,7 @@ func (ws *WebServer) getFishImage(w http.ResponseWriter, r *http.Request) {
 	// is file exist?
 	img, err := ws.storage.FishImage(aquariumID, fishID)
 	if err != nil {
+		ws.log.Error("Failed to get fish image", slog.String("error", err.Error()))
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("404 not found"))
 		return

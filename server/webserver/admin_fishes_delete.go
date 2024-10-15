@@ -1,6 +1,7 @@
 package webserver
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -24,6 +25,7 @@ func (ws *WebServer) deleteAdminFish(w http.ResponseWriter, r *http.Request) {
 	// find aquarium
 	aquarium, err := ws.storage.Aquarium(aquariumID)
 	if err != nil {
+		ws.log.Error("Failed to get aquarium", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
 	}
@@ -31,6 +33,7 @@ func (ws *WebServer) deleteAdminFish(w http.ResponseWriter, r *http.Request) {
 	// find fish
 	fish, err := ws.storage.Fish(aquarium.ID, fishID)
 	if err != nil {
+		ws.log.Error("Failed to get fish", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/admin/aquarium/"+aquarium.ID.String(), http.StatusSeeOther)
 		return
 	}
@@ -38,6 +41,7 @@ func (ws *WebServer) deleteAdminFish(w http.ResponseWriter, r *http.Request) {
 	// delete fish
 	err = ws.storage.DeleteFish(aquarium.ID, fishID)
 	if err != nil {
+		ws.log.Error("Failed to delete fish", slog.String("error", err.Error()))
 		http.Redirect(w, r, "/admin/aquarium/"+aquarium.ID.String(), http.StatusSeeOther)
 		return
 	}
