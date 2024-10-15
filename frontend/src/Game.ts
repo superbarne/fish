@@ -98,7 +98,7 @@ export class Game {
       console.log('ping', event.data)
     });
 
-    evtSource.addEventListener("fish", async (event) => {
+    evtSource.addEventListener("fishjoin", async (event) => {
       console.log('fishjoin', event.data)
       const fish = JSON.parse(event.data);
       console.log(fish)
