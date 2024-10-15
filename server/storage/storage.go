@@ -129,6 +129,10 @@ func (s *Storage) Aquariums() (aquariums []*models.Aquarium, err error) {
 func (s *Storage) Fishes(aquariumID uuid.UUID) (fishes []*models.Fish, err error) {
 	fishesPath := filepath.Join(s.basePath, "aquariums", aquariumID.String(), "fishes")
 
+	if err := os.MkdirAll(fishesPath, os.ModePerm); err != nil {
+		return nil, err
+	}
+
 	files, err := os.ReadDir(fishesPath)
 	if err != nil {
 		return nil, err
