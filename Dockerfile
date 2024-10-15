@@ -21,7 +21,7 @@ RUN ["chmod", "+x", "/src/bin/aquarium"]
 
 FROM scratch
 
-WORKDIR /bin
+WORKDIR /app
 
 COPY --from=build /src/bin/aquarium /bin/aquarium
 COPY --from=frontend_build /app/dist ./assets/aquarium
