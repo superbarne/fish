@@ -105,7 +105,7 @@ export class Game {
 
       // load texture
       if(!fishTextureMap.has(fish.id)) {
-        const imageReponse = await fetch(`/fishs/38d7976d-3c27-4e74-8bfe-a9ec44318d3f/${fish.filename}`)
+        const imageReponse = await fetch(`/aquarium/38d7976d-3c27-4e74-8bfe-a9ec44318d3f/fishes/${fish.filename}`)
         const imageBlob = await imageReponse.blob()
         const texture = new TextureLoader().load(URL.createObjectURL(imageBlob));
         fishTextureMap.set(fish.id, texture)
